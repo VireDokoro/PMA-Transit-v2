@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08090b">
+<title>PMA Transit v2</title>
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#08090b;--card:#111318;--card2:#171a20;--text:#f5f7fa;--muted:#89919d;--line:#252a33;--accent:#38d9ff;--green:#39ff88;--warn:#ffcc66}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+body{min-height:100vh}button,input{font:inherit}.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 14px calc(24px + env(safe-area-inset-bottom))}
+header{padding:22px 4px 16px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:900;letter-spacing:-.8px;font-size:25px}.brand span{color:var(--accent)}.status{font-size:11px;color:var(--muted);background:#101218;border:1px solid var(--line);padding:7px 9px;border-radius:999px}
+.hero{background:linear-gradient(145deg,#14171d,#0e1014);border:1px solid var(--line);border-radius:22px;padding:17px;box-shadow:0 15px 45px #0005}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:800}.hero h1{font-size:28px;line-height:1.05;margin:7px 0 5px}.hero p{margin:0;color:var(--muted);font-size:13px}
+.search{display:flex;gap:9px;margin-top:15px}.search input{min-width:0;flex:1;background:#080a0d;border:1px solid #2a3039;color:white;border-radius:14px;padding:13px 14px;outline:none}.search input:focus{border-color:#4bdaff}.search button{border:0;border-radius:14px;background:var(--accent);color:#001018;font-weight:900;padding:0 18px}
+.quick{display:flex;gap:8px;overflow:auto;margin-top:11px}.quick button{flex:0 0 auto;background:#171a20;color:#dce2e9;border:1px solid var(--line);border-radius:999px;padding:8px 12px}
+.section{margin-top:16px}.section-title{display:flex;justify-content:space-between;align-items:center;margin:0 2px 9px;font-size:14px;font-weight:850}.sub{font-size:11px;color:var(--muted);font-weight:500}
+.message{padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--card);color:var(--muted);font-size:13px}.message.error{border-color:#5a3030;color:#ffb0b0}.message.ok{color:#bcefd2}
+.results{display:grid;gap:9px}.stop-card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}.stop-head{padding:14px 15px;border-bottom:1px solid var(--line)}.stop-code{font-size:11px;color:var(--accent);font-weight:900;letter-spacing:.7px}.stop-name{font-size:16px;font-weight:850;margin-top:3px}.arrivals{padding:4px 0}.arrival{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;padding:13px 15px;border-bottom:1px solid #20242b}.arrival:last-child{border-bottom:0}.route{font-size:19px;font-weight:950}.route-name{font-size:12px;font-weight:750}.headsign{font-size:11px;color:var(--muted);margin-top:2px}.count{font-size:21px;font-weight:950;text-align:right}.count.now{color:var(--green)}.count small{display:block;font-size:10px;color:var(--muted);font-weight:700}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}.meta{font-size:10px;color:var(--muted);padding:10px 15px;background:#0d0f13}
+#map{height:430px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#0b0d10}.leaflet-container{background:#0b0d10}.map-controls{display:flex;gap:7px;overflow:auto;margin:9px 0}.map-controls button{white-space:nowrap;background:var(--card);border:1px solid var(--line);color:#dce2e9;border-radius:999px;padding:8px 11px}.map-controls button.active{border-color:var(--accent);color:var(--accent)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:9px}.legend span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.footer{margin-top:16px;color:#656d78;font-size:10px;line-height:1.45;text-align:center;padding:0 10px}
+.loader{position:fixed;inset:0;background:#08090bf5;display:flex;align-items:center;justify-content:center;padding:25px;z-index:9999}.loader.hidden{display:none}.loader-box{width:min(430px,100%);background:#111318;border:1px solid #292e37;border-radius:22px;padding:22px}.spinner{width:25px;height:25px;border:3px solid #2b313b;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:13px}@keyframes spin{to{transform:rotate(360deg)}}.loader-title{font-size:18px;font-weight:900}.loader-text{color:var(--muted);font-size:12px;line-height:1.5;margin-top:5px}.progress{height:5px;background:#222731;border-radius:10px;margin-top:15px;overflow:hidden}.progress i{display:block;width:30%;height:100%;background:var(--accent);animation:prog 1.3s ease-in-out infinite}@keyframes prog{0%{transform:translateX(-130%)}100%{transform:translateX(450%)}}
+</style>
+</head>
+<body>
+<div id="loader" class="loader">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <div class="loader-title">Preparando PMA Transit v2</div>
+    <div id="loaderText" class="loader-text">Descargando el GTFS oficial de EMT Palma…</div>
+    <div class="progress"><i></i></div>
+  </div>
+</div>
+
+<div class="app">
+<header><div class="brand">PMA <span>Transit</span></div><div id="feedStatus" class="status">GTFS · 2026</div></header>
+
+<section class="hero">
+  <div class="eyebrow">Horarios programados</div>
+  <h1>¿Cuándo pasa tu bus?</h1>
+  <p>Busca una parada de EMT Palma y calcula la próxima salida usando el horario GTFS, no GPS.</p>
+  <div class="search">
+    <input id="stopInput" inputmode="numeric" placeholder="Código de parada · ej. 456" autocomplete="off">
+    <button id="searchBtn">Buscar</button>
+  </div>
+  <div class="quick">
+    <button data-stop="456">456</button><button data-stop="100">100</button><button data-stop="1">1</button>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">Próximas llegadas <span id="clock" class="sub">--:--:--</span></div>
+  <div id="results" class="results"><div class="message">Introduce una parada para consultar sus horarios.</div></div>
+</section>
+
+<section class="section">
+  <div class="section-title">Mapa de líneas <span class="sub">GTFS · shapes</span></div>
+  <div class="map-controls" id="lineControls">
+    <button data-line="ALL" class="active">Todas</button>
+    <button data-line="25">L25</button><button data-line="23">L23</button><button data-line="35">L35</button>
+  </div>
+  <div id="map"></div>
+  <div class="legend"><span>● L25</span><span>● L23</span><span>● L35</span><span>● Paradas</span></div>
+</section>
+
+<div class="footer">
+  PMA Transit v2 · datos de horarios procedentes del GTFS público de EMT Palma.
+  “AHORA” significa que el horario programa una salida para este minuto; no confirma la posición física del autobús.
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* PMA Transit v2
+   Arquitectura: el GTFS se descarga una sola vez desde una fuente pública con CORS.
+   El navegador NO intenta leer GitHub Raw directamente desde file://.
+*/
+const SOURCES=[
+ 'https://cdn.jsdelivr.net/gh/emtpalma/Open-Data@master/lineas-paradas-horarios-gtfs.zip',
+ 'https://raw.githubusercontent.com/emtpalma/Open-Data/master/lineas-paradas-horarios-gtfs.zip'
+];
+const SELECTED=new Set(['23','25','35']);
+let DB={routes:new Map(),stops:new Map(),trips:new Map(),times:[],calendar:[],exceptions:[],freq:[],shapes:new Map(),ready:false};
+let map, layers=new Map(), stopLayer, activeLine='ALL', lastStop=null;
+
+const $=id=>document.getElementById(id);
+function loader(t){$('loaderText').textContent=t}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
+    if(c==='"'&&q&&n==='"'){cell+='"';i++;continue}
+    if(c==='"'){q=!q;continue}
+    if(c===','&&!q){row.push(cell);cell='';continue}
+    if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&n==='\n')i++;row.push(cell);if(row.some(x=>x!==''))rows.push(row);row=[];cell='';continue}
+    cell+=c;
+  }
+  if(cell||row.length){row.push(cell);rows.push(row)}
+  if(!rows.length)return[];
+  const head=rows[0];return rows.slice(1).map(r=>{const o={};head.forEach((h,i)=>o[h]=r[i]??'');return o})
+}
+function tSec(t){
+  if(!t)return null; const p=t.split(':').map(Number);
+  if(p.length<2||p.some(Number.isNaN))return null;
+  return p[0]*3600+p[1]*60+(p[2]||0)
+}
+function dateKey(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')}
+function serviceActive(serviceId,d){
+  const k=dateKey(d);
+  let base=false;
+  for(const c of DB.calendar)if(c.service_id===serviceId){
+    const a=Number(c.start_date),b=Number(c.end_date), ymd=Number(k);
+    const wd=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][d.getDay()];
+    base=ymd>=a&&ymd<=b&&c[wd]==='1'; break;
+  }
+  let val=base;
+  for(const e of DB.exceptions)if(e.service_id===serviceId&&e.date===k){val=e.exception_type==='1'}
+  return val
+}
+function localSec(d){
+  return d.getHours()*3600+d.getMinutes()*60+d.getSeconds()
+}
+async function fetchZip(){
+  let last='';
+  for(const u of SOURCES){
+    try{
+      loader('Descargando GTFS oficial…');
+      const ctrl=new AbortController();const tm=setTimeout(()=>ctrl.abort(),18000);
+      const r=await fetch(u,{signal:ctrl.signal,cache:'no-store'});
+      clearTimeout(tm);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return await r.arrayBuffer();
+    }catch(e){last=e.message}
+  }
+  throw new Error('No se pudo descargar el GTFS ('+last+'). Si estás abriendo index.html como archivo local, publícalo en GitHub Pages para permitir la descarga CORS.')
+}
+async function load(){
+  if(!window.JSZip) throw new Error('No se pudo cargar JSZip');
+  const buf=await fetchZip();loader('Leyendo rutas, paradas y horarios…');
+  const zip=await JSZip.loadAsync(buf);
+  async function csv(name){const f=zip.file(name);return f?parseCSV(await f.async('text')):[]}
+  const [routes,stops,trips,times,cal,exc,freq,shapes]=await Promise.all([
+    csv('routes.txt'),csv('stops.txt'),csv('trips.txt'),csv('stop_times.txt'),
+    csv('calendar.txt'),csv('calendar_dates.txt'),csv('frequencies.txt'),csv('shapes.txt')
+  ]);
+  routes.forEach(r=>DB.routes.set(r.route_id,r));
+  stops.forEach(s=>DB.stops.set(s.stop_id,s));
+  trips.forEach(t=>{if(SELECTED.has(DB.routes.get(t.route_id)?.route_short_name))DB.trips.set(t.trip_id,t)});
+  DB.times=times.filter(x=>DB.trips.has(x.trip_id));
+  DB.calendar=cal;DB.exceptions=exc;DB.freq=freq;
+  for(const p of shapes){
+    const tr=DB.trips.get(p.shape_id); // fallback: shape IDs are collected below from selected trips
+  }
+  const wantedShapes=new Set([...DB.trips.values()].map(t=>t.shape_id).filter(Boolean));
+  for(const p of shapes)if(wantedShapes.has(p.shape_id)){
+    if(!DB.shapes.has(p.shape_id))DB.shapes.set(p.shape_id,[]);
+    DB.shapes.get(p.shape_id).push(p);
+  }
+  for(const arr of DB.shapes.values())arr.sort((a,b)=>Number(a.shape_pt_sequence)-Number(b.shape_pt_sequence));
+  DB.ready=true;
+  $('feedStatus').textContent='GTFS · listo';
+}
+function nextDepartures(stopCode){
+  const now=new Date(), out=[];
+  const activeServices=new Set();
+  // Include today and the previous service day to correctly handle 24:xx trips.
+  const prev=new Date(now);prev.setDate(prev.getDate()-1);
+  [prev,now].forEach(d=>{for(const c of DB.calendar)if(serviceActive(c.service_id,d))activeServices.add(c.service_id)});
+  for(const st of DB.times){
+    if(st.stop_id!==stopCode)continue;
+    const tr=DB.trips.get(st.trip_id); if(!tr||!activeServices.has(tr.service_id))continue;
+    const rs=DB.routes.get(tr.route_id); if(!rs||!SELECTED.has(rs.route_short_name))continue;
+    const sec=tSec(st.departure_time||st.arrival_time);if(sec==null)continue;
+    const serviceDay = sec>=86400 ? prev : now;
+    const active=serviceActive(tr.service_id,serviceDay);
+    if(!active)continue;
+    const midnight=new Date(serviceDay);midnight.setHours(0,0,0,0);
+    const target=new Date(midnight.getTime()+sec*1000);
+    const diff=Math.round((target-now)/1000);
+    if(diff>=-59)out.push({diff,target,tr,rs,st});
+  }
+  // Frequency-based trips: expand only the next few instances at the requested stop.
+  for(const f of DB.freq){
+    const tr=DB.trips.get(f.trip_id);if(!tr)continue;
+    const rs=DB.routes.get(tr.route_id);if(!rs||!SELECTED.has(rs.route_short_name))continue;
+    const base=DB.times.filter(x=>x.trip_id===tr.trip_id&&x.stop_id===stopCode)[0];if(!base)continue;
+    const start=tSec(f.start_time),end=tSec(f.end_time),step=Number(f.headway_secs);
+    if(start==null||end==null||!step)continue;
+    for(let s=start;s<=end;s+=step){
+      const diff=s-localSec(now);if(diff>=-59)out.push({diff,target:new Date(now.getTime()+diff*1000),tr,rs,st:{departure_time:'',_freq:true}});
+      if(out.length>80)break;
+    }
+  }
+  out.sort((a,b)=>a.diff-b.diff);
+  const seen=new Set(),clean=[];
+  for(const x of out){
+    const key=x.rs.route_short_name+'|'+x.tr.trip_headsign+'|'+Math.round(x.diff/60)+'|'+x.st.departure_time;
+    if(!seen.has(key)){seen.add(key);clean.push(x)}
+    if(clean.length>=20)break;
+  }
+  return clean;
+}
+function renderResults(code){
+  lastStop=code;const stop=[...DB.stops.values()].find(s=>s.stop_code===code||s.stop_id===code);
+  if(!stop){$('results').innerHTML='<div class="message error">No encuentro esa parada en el GTFS.</div>';return}
+  const arr=nextDepartures(stop.stop_id);
+  if(!arr.length){$('results').innerHTML='<div class="message">No hay próximas salidas de las líneas seleccionadas para este momento/día.</div>';return}
+  const groups=new Map();
+  arr.forEach(x=>{if(!groups.has(x.rs.route_short_name))groups.set(x.rs.route_short_name,[]);groups.get(x.rs.route_short_name).push(x)});
+  let html=`<div class="stop-card"><div class="stop-head"><div class="stop-code">PARADA ${escapeHtml(stop.stop_code||stop.stop_id)}</div><div class="stop-name">${escapeHtml(stop.stop_name)}</div></div><div class="arrivals">`;
+  for(const [line,items] of groups){
+    for(const x of items.slice(0,7)){
+      const mins=Math.max(0,Math.floor(x.diff/60));
+      const now=x.diff<=30&&x.diff>=-59;
+      const time=x.target.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+      html+=`<div class="arrival">
+        <div class="route"><span class="dot" style="background:#${escapeHtml(x.rs.route_color||'38d9ff')}"></span>${escapeHtml(line)}</div>
+        <div><div class="route-name">${escapeHtml(x.rs.route_long_name||'EMT Palma')}</div><div class="headsign">${escapeHtml(x.tr.trip_headsign||'')}</div></div>
+        <div class="count ${now?'now':''}">${now?'AHORA':mins+' min'}<small>${time}</small></div>
+      </div>`;
+    }
+  }
+  html+='</div><div class="meta">Horario programado · no implica posición GPS del autobús.</div></div>';
+  $('results').innerHTML=html;
+}
+function initMap(){
+  map=L.map('map',{zoomControl:false}).setView([39.575,2.655],12);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  stopLayer=L.layerGroup().addTo(map);
+  drawLines('ALL');
+}
+function drawLines(line){
+  activeLine=line;
+  for(const l of layers.values())map.removeLayer(l);layers.clear();
+  const seen=new Set();
+  for(const tr of DB.trips.values()){
+    const r=DB.routes.get(tr.route_id),name=r?.route_short_name;
+    if(!r||!SELECTED.has(name)||(line!=='ALL'&&name!==line)||!tr.shape_id||seen.has(tr.shape_id))continue;
+    const pts=DB.shapes.get(tr.shape_id);if(!pts?.length)continue;
+    seen.add(tr.shape_id);
+    const latlngs=pts.map(p=>[Number(p.shape_pt_lat),Number(p.shape_pt_lon)]);
+    const layer=L.polyline(latlngs,{color:'#'+(r.route_color||'38d9ff'),weight:5,opacity:.9}).addTo(map);
+    layers.set(tr.shape_id,layer);
+  }
+  document.querySelectorAll('#lineControls button').forEach(b=>b.classList.toggle('active',b.dataset.line===line));
+}
+async function start(){
+  try{
+    await load();
+    loader('Construyendo mapa de L23, L25 y L35…');
+    initMap();
+    $('loader').classList.add('hidden');
+    $('clock').textContent=new Date().toLocaleTimeString('es-ES');
+    // Initial example only if stop 456 exists.
+    const s=[...DB.stops.values()].find(x=>x.stop_code==='456');
+    if(s) renderResults('456');
+  }catch(e){
+    console.error(e);
+    $('loader').classList.add('hidden');
+    $('results').innerHTML='<div class="message error"><b>No se pudo cargar el GTFS.</b><br>'+escapeHtml(e.message)+'<br><br>La v2 ya no se queda cargando infinitamente: muestra el motivo y permite reintentar.</div>';
+    $('feedStatus').textContent='GTFS · error';
+  }
+}
+$('searchBtn').onclick=()=>{const v=$('stopInput').value.trim();if(v&&DB.ready)renderResults(v)}
+$('stopInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('searchBtn').click()});
+document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{$('stopInput').value=b.dataset.stop;renderResults(b.dataset.stop)});
+document.querySelectorAll('#lineControls button').forEach(b=>b.onclick=()=>drawLines(b.dataset.line));
+setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('es-ES');if(lastStop&&DB.ready)renderResults(lastStop)},1000);
+
+// JSZip is loaded last so the page can show a useful failure instead of hanging.
+const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=start;s.onerror=()=>{$('loader').classList.add('hidden');$('results').innerHTML='<div class="message error">No se pudo cargar JSZip. Comprueba la conexión a internet.</div>'};document.head.appendChild(s);
+</script>
+</body>
+</html>
